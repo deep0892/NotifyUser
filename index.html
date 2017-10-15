@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous">
+    <title>Notification</title>
+    <style>
+       
+        .chat-message{display: table; width: 100%;}
+        .hide{display: none !important}
+        .chat-message > div{display: table-cell; width: 50%; border-bottom:1px solid #ddd; padding:5px; margin: 0; box-sizing:border-box; font-size: 14px;    text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-6 offset-md-3 col-sm-12">
+                
+                <div id="status"></div>
+                <div id="chat">
+                   
+                    <div class="card">
+                        <div id="messages">
+
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.3/socket.io.js"></script>
+
+    <script>
+        function getUrlVars()
+{
+    var vars = [], hash;
+    var hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
+    for(var i = 0; i < hashes.length; i++)
+    {
+        hash = hashes[i].split('=');
+        vars.push(hash[0]);
+        vars[hash[0]] = hash[1];
+    }
+    return vars;
+}
+        (function(){
+            var element = function(id){
+                return document.getElementById(id);
+            }
+
+            // Get Elements
+            var status = element('status');
+            var messages = element('messages');
+            var textarea = element('textarea');
+            var username = element('username');
+            var clearBtn = element('clear');
+
+            // Set default status
+            var statusDefault = status.textContent;
+
+            var setStatus = function(s){
+                // Set status
+                status.textContent = s;
+
+                if(s !== statusDefault){
+                    var delay = setTimeout(function(){
+                        setStatus(statusDefault);
+                    }, 4000);
+                }
+            }
+
+            // Connect to socket.io
+            var socket = io.connect('http://10.34.83.17:4000');
+//alert(getUrlVars()["eid"]);
+            socket.emit('GetMyData',  {
+                            eid:getUrlVars()["eid"]
+                        },function(data){
+                    console.log(data);
+                });
+
+            // Check for connection
+            socket.on('output', function(data){
+                    //console.log(data);
+                    if(data.length){
+                        for(var x = 0;x < data.length;x++){
+                            // Build out message div
+                            if(data[x].eid == getUrlVars()["eid"]){
+                            var message = document.createElement('div');
+                            message.setAttribute("id", data[x]._id);
+                            message.setAttribute('class', 'chat-message');
+                            message.innerHTML ="<div>" 
+                                //+data[x].ts+"</div>" 
+                                +"Inbound Ticket </div>" 
+                                +"<div><a href='javascript:void(0)' id='"+data[x].eid+"/"+data[x].ticketid+"/"+data[x]._id +"' onclick='OpenTicket(this)'>"
+                                    +data[x].ticketid
+                                    +"</a>  <b id='"
+                                    +data[x]._id 
+                                    +"' onclick='MarkAsRead(this);'>x</b></div>";//+": "+data[x].message;
+                            messages.appendChild(message);
+                            messages.insertBefore(message, messages.firstChild);
+                            }
+                        }
+                    }
+                });
+
+        })();
+
+        function MarkAsRead(elem){
+            //alert(elem.id);
+            var socket = io.connect('http://10.34.83.17:4000');
+            socket.emit('MarkRead',  {
+                            _id:elem.id
+                        },function(data){
+                    console.log(data);
+                   
+                });
+                var _div= document.getElementById(elem.id);
+                   _div.outerHTML = "";
+        }
+
+        function OpenTicket(elem){
+            //alert(elem.id);
+
+            var socket = io.connect('http://10.34.83.17:4000');
+            socket.emit('MarkRead',  {
+                            _id:elem.id.split('/')[2]
+                        },function(data){
+                    console.log(data);
+                   
+                });
+                var _div= document.getElementById(elem.id.split('/')[2]);
+                   _div.outerHTML = "";
+                   var _url="http://tickets.policybazaar.com/home.html#/TicketSystem/Notification/" + elem.id.split('/')[0] + "/"+elem.id.split('/')[1];
+        //window.open(_url);
+        window.parent.location.href= _url;
+        }
+       
+    </script>
+</body>
+</html>
